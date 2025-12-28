@@ -1,0 +1,44 @@
+#Low Power process
+vendor.audio.lowpower=false
+ro.vendor.audio.soundtrigger.lowpower=false
+persist.vendor.audio.misoundasc=false
+
+# Low latency configuration
+aaudio.mmap_policy=2
+aaudio.mmap_exclusive_policy=3
+vendor.audio_hal.period_multiplier=4
+vendor.audio.adm.buffering.ms=6
+
+#Harman Kardon switch
+ro.vendor.audio.sfx.harmankardon=true
+
+# Improve Qualcomm process
+audio.playback.mch.downsample=true
+persist.vendor.audio.bcl.enabled=false
+persist.vendor.audio.ras.enabled=false
+vendor.audio.feature.hifi_audio.enable=true
+vendor.audio.feature.ras.enable=false
+vendor.audio.feature.src_trkn.enable=true
+vendor.audio.tunnel.encode=true
+vendor.audio.tunnel.decode=true
+vendor.audio.spkr_prot.tx.sampling_rate=96000
+vendor.audio.hal.output.suspend.supported=true
+persist.dev.pm.dyn_samplingrate=1
+ro.vendor.audio.surround.headphone.only=false
+
+# Hardware offload configuration
+vendor.audio.offload.gapless.enabled=true
+vendor.audio.offload.track.enable=true
+vendor.audio.offload.multiple.enabled=true
+vendor.audio.offload.passthrough=true
+audio.offload.pcm.enable=true
+audio.offload.pcm.16bit.enable=true
+audio.offload.pcm.24bit.enable=true
+audio.offload.pcm.32bit.enable=true
+audio.offload.pcm.float.enable=true
+persist.audio.format.24bit=true
+persist.audio.format.32bit=true
+persist.audio.format.float=true
+persist.vendor.audio.format.24bit=true
+persist.vendor.audio.format.32bit=true
+persist.vendor.audio.format.float=true
