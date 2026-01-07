@@ -2,6 +2,8 @@
 ## Dolby × Harman Powerful tuning
 ## 杜比 × 哈曼 强力调音
 
+---
+
 ## EN
 
 This is a Magisk/KernelSU sound quality enhancement module for the Xiaomi or REDMI Mi Pad
@@ -18,7 +20,7 @@ This is a Magisk/KernelSU sound quality enhancement module for the Xiaomi or RED
 1. If the Settings → Sound & touch → Sound Effects crashes or becomes unavailable after installing the module:
       This is caused by replacing the Misound APK during module installation.
 
-#Solutions 🔧
+## Solutions 🔧
 
 1. Reinstall the Misound APK
 
@@ -29,9 +31,9 @@ This is a Magisk/KernelSU sound quality enhancement module for the Xiaomi or RED
 
 · When prompted whether to replace the Misound APK, choose "Do not replace".
 
----
-
 ✅ Follow these steps carefully to ensure proper installation and functionality.
+
+---
 
 ## CN
 
@@ -60,6 +62,6 @@ This is a Magisk/KernelSU sound quality enhancement module for the Xiaomi or RED
 
 · 在现在是否替换音质音效相关选择时，选择不替换音质音效。
 
----
-
 ✅ 请仔细遵循这些步骤，以确保正确安装和正常运行。
+
+---
