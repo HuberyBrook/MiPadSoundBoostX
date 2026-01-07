@@ -46,7 +46,7 @@ This is a Magisk/KernelSU sound quality enhancement module for the Xiaomi or RED
 
 ## 相关问题 ⚠️
 
-1.若安装模块后出现 设置 → 声音与触感 → 音质音效。闪退不可用的情况，出现问题的原因:
+1. 若安装模块后出现 设置 → 声音与触感 → 音质音效。闪退不可用的情况，出现问题的原因:
 在安装模块时选择了替换音质音效apk文件。
 
 ## 解决方法 🔧
