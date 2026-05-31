@@ -10,7 +10,7 @@
 | MiPadSoundBoostX_Nabu | Pad 5 (nabu) | 2025-10-03 |
 | MiPadSoundBoostX_Liuqin | Pad 6 Pro (liuqin) | 2025-11-18 |
 | MiPadSoundBoostX_Yudi | Pad 6 Max (yudi) | 2026-02-16 |
-| MiPadSoundBoostX_Piano_BOSE_D | Pad 8 Pro (piano) | 2025-05-23 |
+| MiPadSoundBoostX_Piano_BOSE_D | Pad 8 Pro (piano) | 2026-05-23 |
 | MiPadSoundBoostX_elish_enuma | Pad 5 Pro / 5 Pro 5G (elish/enuma) | 2025-12-14 |
 
 ## 安装
