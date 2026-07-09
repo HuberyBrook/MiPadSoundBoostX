@@ -9,6 +9,10 @@ on:
       tag_name:
         description: 'Tag name (e.g., v20260709)'
         required: true
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -41,6 +45,18 @@ jobs:
             echo "tag=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
           else
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if prerelease
+        id: prerelease
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "prerelease=${{ github.event.inputs.prerelease }}" >> $GITHUB_OUTPUT
+          elif echo "$TAG" | grep -qiE '(pre|alpha|beta|rc)'; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Create module zip
@@ -78,6 +94,7 @@ jobs:
             update.json
           generate_release_notes: true
           make_latest: true
+          prerelease: ${{ steps.prerelease.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
