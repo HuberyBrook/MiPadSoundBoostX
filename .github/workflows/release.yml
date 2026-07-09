@@ -1,0 +1,92 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name (e.g., v20260709)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read module info
+        id: mod
+        run: |
+          MODULE_ID=$(grep '^id=' module.prop | cut -d= -f2)
+          MODULE_NAME=$(grep '^name=' module.prop | cut -d= -f2)
+          VERSION=$(grep '^version=' module.prop | cut -d= -f2)
+          VERSION_CODE=$(grep '^versionCode=' module.prop | cut -d= -f2)
+          echo "module_id=${MODULE_ID}" >> $GITHUB_OUTPUT
+          echo "module_name=${MODULE_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+
+      - name: Set tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create module zip
+        run: |
+          ZIP_NAME="${{ steps.mod.outputs.module_id }}_${{ steps.mod.outputs.version }}.zip"
+          zip -r "${ZIP_NAME}" . \
+            -x '.git/*' \
+            -x '.github/*' \
+            -x '.gitignore' \
+            -x 'update.json' \
+            -x '*.zip' \
+            -x 'README.md'
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+          echo "Created ${ZIP_NAME} ($(du -h ${ZIP_NAME} | cut -f1))"
+
+      - name: Generate update.json
+        run: |
+          cat > update.json << JSONEOF
+          {
+            "version": "${{ steps.tag.outputs.tag }}",
+            "versionCode": ${{ steps.mod.outputs.version_code }},
+            "zipUrl": "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/${ZIP_NAME}",
+            "changelog": "https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.tag }}"
+          }
+          JSONEOF
+          cat update.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "${{ steps.mod.outputs.module_name }} ${{ steps.tag.outputs.tag }}"
+          files: |
+            ${{ env.ZIP_NAME }}
+            update.json
+          generate_release_notes: true
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit update.json to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git diff --staged --quiet || git commit -m "chore: update update.json for ${{ steps.tag.outputs.tag }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,17 @@
+
+<packages>
+    <config>
+        <template type="lowPowerShortVideo" volume="0.562" power_save="0.562"/>
+        <template type="lowPowerLongVideo" volume="0.776" power_save="0.776"/>
+        <template type="lowPowerGame" volume="0.794" power_save="0.794"/>
+        <template type="lowPowerSva" volume="0.562" power_save="0.562"/>
+    </config>
+    <group type="lowPowerShortVideo">
+    </group>
+    <group type="lowPowerLongVideo">
+    </group>
+    <group type="lowPowerGame">
+    </group>
+    <group type="lowPowerSva">
+    </group>
+</packages>

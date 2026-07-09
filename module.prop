@@ -1,0 +1,8 @@
+id=MiPadSoundBoostXTEXT
+name=MiPadSoundBoostX_Piano
+version=20260513
+versionCode=20260513
+author=HuberyBrook、是Ray酱呀、Sc素菜、NikoRur_QwQRuaa
+minMagisk=20400
+description=优化动态范围与音质,可用于KSU,适用于小米平板8Pro的音效优化。
+updateJson=https://raw.githubusercontent.com/HuberyBrook/MiPadSoundBoostX/piano/update.json

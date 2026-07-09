@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiPadSoundBoostX Piano - Web Configurator</title>
+<script src="js/chart.umd.min.js"></script>
+<script src="js/jszip.min.js"></script>
+<script src="js/filesaver.min.js"></script>
+<style>
+:root {
+  --bg-primary: #0f0f14;
+  --bg-secondary: #18181f;
+  --bg-card: #1e1e28;
+  --bg-hover: #282836;
+  --border: #2a2a38;
+  --text-primary: #e4e4ec;
+  --text-secondary: #9898ac;
+  --text-muted: #68688a;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-glow: rgba(99,102,241,0.25);
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --cyan: #06b6d4;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --transition: 0.2s ease;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg-primary); color: var(--text-primary);
+  display: flex; min-height: 100vh; line-height: 1.5;
+}
+/* Sidebar */
+.sidebar {
+  width: 240px; min-width: 240px; background: var(--bg-secondary);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; z-index: 10;
+}
+.sidebar-header {
+  padding: 24px 20px; border-bottom: 1px solid var(--border);
+}
+.sidebar-header h1 { font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+.sidebar-header .sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-radius: var(--radius-sm); cursor: pointer; font-size: 13.5px;
+  font-weight: 500; color: var(--text-secondary); transition: var(--transition);
+  border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-item.active { background: var(--accent); color: #fff; }
+.nav-icon { font-size: 17px; width: 22px; text-align: center; }
+/* Main */
+.main { flex: 1; padding: 32px; overflow-y: auto; max-width: 1200px; }
+.page { display: none; }
+.page.active { display: block; }
+.page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.page-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+/* Cards */
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.card-header { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.card-header .icon { font-size: 16px; }
+/* Stats grid */
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; text-align: center; }
+.stat-card .num { font-size: 32px; font-weight: 800; color: var(--accent); }
+.stat-card .label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid transparent; transition: var(--transition);
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-outline { background: transparent; border-color: var(--border); color: var(--text-primary); }
+.btn-outline:hover { background: var(--bg-hover); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--bg-secondary); padding: 4px; border-radius: var(--radius-sm); width: fit-content; }
+.tab {
+  padding: 7px 16px; border-radius: 4px; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: none; background: none; color: var(--text-secondary); transition: var(--transition);
+}
+.tab:hover { color: var(--text-primary); }
+.tab.active { background: var(--accent); color: #fff; }
+.subtabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.subtab {
+  padding: 5px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text-secondary); transition: var(--transition);
+}
+.subtab:hover { border-color: var(--accent); color: var(--text-primary); }
+.subtab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* EQ Chart */
+.eq-chart-wrap { position: relative; width: 100%; height: 340px; margin-bottom: 16px; }
+.eq-legend { display: flex; gap: 18px; justify-content: center; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+.eq-legend span { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.eq-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+td input { width: 80px; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 13px; text-align: center; }
+td input:focus { border-color: var(--accent); outline: none; }
+/* Toggle */
+.toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--border); border-radius: 22px; transition: var(--transition); }
+.toggle .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: var(--transition); }
+.toggle input:checked + .slider { background: var(--accent); }
+.toggle input:checked + .slider::before { transform: translateX(18px); }
+/* Form */
+.form-group { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.form-group label { font-size: 12px; color: var(--text-secondary); width: 200px; flex-shrink: 0; }
+.form-group input[type="number"],
+.form-group select { background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 5px 10px; border-radius: 4px; font-size: 13px; width: 100px; }
+.form-group input[type="number"]:focus,
+.form-group select:focus { border-color: var(--accent); outline: none; }
+.form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.form-col { flex: 1; min-width: 320px; }
+.param-section { margin-bottom: 14px; }
+.param-section h4 { font-size: 12px; font-weight: 700; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+/* Collapse */
+.collapse-header {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: var(--bg-secondary); border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: var(--transition);
+}
+.collapse-header:hover { background: var(--bg-hover); }
+.collapse-header .arrow { font-size: 10px; transition: var(--transition); }
+.collapse-header.open .arrow { transform: rotate(90deg); }
+.collapse-body { display: none; padding: 12px 0; }
+.collapse-body.open { display: block; }
+/* XML Preview */
+.xml-preview { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-x: auto; max-height: 400px; overflow-y: auto; white-space: pre; }
+/* Prop group */
+.prop-group { margin-bottom: 20px; }
+.prop-group h4 { font-size: 13px; font-weight: 700; color: var(--cyan); margin-bottom: 8px; }
+.prop-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.prop-row .prop-name { flex: 1; font-size: 12px; font-family: monospace; color: var(--text-secondary); word-break: break-all; }
+.prop-row .prop-desc { font-size: 11px; color: var(--text-muted); width: 140px; flex-shrink: 0; }
+/* Device info */
+.device-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+}
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #000;
+  padding: 10px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  z-index: 1000; opacity: 0; transform: translateY(10px); transition: var(--transition);
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+/* Responsive */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; min-width: unset; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border); }
+  .sidebar-nav { flex-direction: row; flex-wrap: wrap; }
+  .nav-item { width: auto; }
+  .main { padding: 16px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>MiPadSoundBoostX</h1>
+    <div class="sub">Piano Edition · Web Configurator</div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-page="dashboard"><span class="nav-icon">&#9679;</span> 总览仪表板</button>
+    <button class="nav-item" data-page="ieq"><span class="nav-icon">&#9833;</span> IEQ 均衡器</button>
+    <button class="nav-item" data-page="scenes"><span class="nav-icon">&#9675;</span> 场景编辑器</button>
+    <button class="nav-item" data-page="mixer"><span class="nav-icon">&#9678;</span> 混音器通路</button>
+    <button class="nav-item" data-page="props"><span class="nav-icon">&#9881;</span> 系统属性</button>
+  </nav>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+
+<!-- ==================== Dashboard ==================== -->
+<section class="page active" id="page-dashboard">
+  <h2 class="page-title">总览仪表板</h2>
+  <p class="page-desc">MiPadSoundBoostX Piano 音频增强模块配置工具</p>
+  <div class="stats">
+    <div class="stat-card"><div class="num">20260513</div><div class="label">模块版本</div></div>
+    <div class="stat-card"><div class="num">6</div><div class="label">IEQ 预设</div></div>
+    <div class="stat-card"><div class="num">12</div><div class="label">空间化场景配置</div></div>
+    <div class="stat-card"><div class="num">29</div><div class="label">系统属性项</div></div>
+    <div class="stat-card"><div class="num">17</div><div class="label">扬声器通路</div></div>
+    <div class="stat-card"><div class="num">4</div><div class="label">杜比场景模式</div></div>
+    <div class="stat-card"><div class="num">odm+sys</div><div class="label">分区覆盖</div></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-header"><span class="icon">&#9889;</span> 模块信息</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px;">
+      <div><span style="color:var(--text-muted)">名称：</span>MiPadSoundBoostX_Piano</div>
+      <div><span style="color:var(--text-muted)">ID：</span>MiPadSoundBoostXTEXT</div>
+      <div><span style="color:var(--text-muted)">作者：</span>HuberyBrook、是Ray酱呀、Sc素菜、NikoRur_QwQRuaa</div>
+      <div><span style="color:var(--text-muted)">适用设备：</span><span class="device-badge">小米平板 8 Pro (piano)</span></div>
+      <div><span style="color:var(--text-muted)">框架支持：</span>Magisk 20.4+ / KernelSU / APatch</div>
+      <div><span style="color:var(--text-muted)">调音范围：</span>杜比沉浸声 (Dolby Atmos Spatializer)</div>
+      <div><span style="color:var(--text-muted)">最低 Magisk：</span>20400</div>
+      <div><span style="color:var(--text-muted)">配置文件数：</span>18 (odm/ + system/)</div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btnApply" onclick="applyToDevice()" style="display:none">&#9889; 应用到设备</button>
+    <button class="btn btn-primary" id="btnExport" onclick="exportModule()">&#128190; 导出模块 ZIP</button>
+    <button class="btn btn-outline" id="btnLoadDevice" onclick="loadFromDevice()" style="display:none">&#128260; 从设备加载配置</button>
+    <button class="btn btn-outline" onclick="resetAll()">&#8634; 重置所有配置</button>
+  </div>
+  <div id="ksuStatus" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
+</section>
+
+<!-- ==================== IEQ ==================== -->
+<section class="page" id="page-ieq">
+  <h2 class="page-title">IEQ 均衡器</h2>
+  <p class="page-desc">20段智能均衡器 (来自 odm/etc/dolby/dax-default.xml) — 共 6 组预设，前 3 组为主要预设，后 3 组默认隐藏。点击图例切换显示。</p>
+
+  <div class="eq-chart-wrap"><canvas id="eqChart"></canvas></div>
+  <div class="eq-legend" id="eqLegend"></div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-header">编辑 IEQ 预设</div>
+    <div class="tabs" id="ieqPresetTabs">
+      <button class="tab active" data-preset="0">Detailed</button>
+      <button class="tab" data-preset="1">Balanced</button>
+      <button class="tab" data-preset="2">Warm</button>
+      <button class="tab" data-preset="3">Headphone_Ray</button>
+      <button class="tab" data-preset="4">Speaker_Balanced</button>
+      <button class="tab" data-preset="5">Speaker_Warm</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>频率 (Hz)</th><th>Target (dB/100)</th></tr></thead>
+        <tbody id="ieqTableBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline btn-sm" onclick="applyIEQToChart()">&#8635; 更新曲线</button>
+      <button class="btn btn-outline btn-sm" onclick="resetIEQCurrent()">&#8634; 重置当前预设</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Scenes ==================== -->
+<section class="page" id="page-scenes">
+  <h2 class="page-title">场景编辑器</h2>
+  <p class="page-desc">编辑杜比空间化场景参数 — 4 个场景 × 3 种端点类型</p>
+
+  <div class="tabs" id="sceneTabs">
+    <button class="tab active" data-scene="0">Dynamic</button>
+    <button class="tab" data-scene="1">Movie</button>
+    <button class="tab" data-scene="2">Music</button>
+    <button class="tab" data-scene="3">Voice</button>
+  </div>
+  <div class="subtabs" id="endpointTabs">
+    <button class="subtab active" data-endpoint="speaker">Speaker</button>
+    <button class="subtab" data-endpoint="headphone">Headphone</button>
+    <button class="subtab" data-endpoint="other">Other</button>
+  </div>
+
+  <div class="form-row" id="sceneParams"></div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="collapse-header" onclick="toggleCollapse(this)"><span class="arrow">&#9654;</span> XML 实时预览</div>
+    <div class="collapse-body"><pre class="xml-preview" id="sceneXmlPreview"></pre></div>
+  </div>
+</section>
+
+<!-- ==================== Mixer ==================== -->
+<section class="page" id="page-mixer">
+  <h2 class="page-title">混音器通路</h2>
+  <p class="page-desc">mixer_paths_overlay_static.xml — 扬声器与麦克风通路配置</p>
+  <div id="mixerContent"></div>
+</section>
+
+<!-- ==================== Props ==================== -->
+<section class="page" id="page-props">
+  <h2 class="page-title">系统属性</h2>
+  <p class="page-desc">system.prop — 29 项音频相关 build.prop 属性编辑</p>
+  <div id="propsContent"></div>
+  <div class="btn-row">
+    <button class="btn btn-outline btn-sm" onclick="resetProps()">&#8634; 重置所有属性为默认值</button>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== KERNELSU INTEGRATION ====================
+let ksu = null;
+let ksuModDir = '/data/adb/modules/MiPadSoundBoostXTEXT';
+
+(async function initKSU() {
+  try {
+    ksu = await import('kernelsu');
+    const info = ksu.moduleInfo();
+    ksuModDir = info.moduleDir || ksuModDir;
+    document.getElementById('ksuStatus').textContent = 'KernelSU WebUI · ' + ksuModDir;
+    document.getElementById('btnApply').style.display = '';
+    document.getElementById('btnLoadDevice').style.display = '';
+    document.getElementById('btnExport').style.display = 'none';
+  } catch(e) {
+    document.getElementById('ksuStatus').textContent = '浏览器模式 · 导出ZIP后刷入模块';
+  }
+})();
+
+async function ksuExec(cmd) {
+  if (!ksu) return { errno: -1, stdout: '', stderr: 'not in KSU' };
+  return ksu.exec(cmd);
+}
+
+async function applyToDevice() {
+  if (!ksu) { toast('仅在 KernelSU 环境下可用'); return; }
+  try {
+    // Write odm dax-default.xml
+    const daxXml = buildDaxDefaultXml();
+    await ksuExec(`cat > ${ksuModDir}/odm/etc/dolby/dax-default.xml << 'KSUEOF'\n${daxXml}\nKSUEOF`);
+    // Write spatializer
+    const spXml = buildSpatializerXml();
+    await ksuExec(`cat > ${ksuModDir}/system/vendor/etc/dolby/dax-default-spatializer.xml << 'KSUEOF'\n${spXml}\nKSUEOF`);
+    // Write mixer paths
+    const mixerXml = buildMixerOverlayXml();
+    await ksuExec(`cat > ${ksuModDir}/odm/etc/audio/sku_sun/mixer_paths_overlay_static.xml << 'KSUEOF'\n${mixerXml}\nKSUEOF`);
+    // Write system.prop
+    const propText = buildSystemProp();
+    await ksuExec(`cat > ${ksuModDir}/system.prop << 'KSUEOF'\n${propText}\nKSUEOF`);
+    if (ksu.toast) ksu.toast('配置已应用，重启后生效!');
+    else toast('配置已应用，重启后生效!');
+  } catch(e) {
+    toast('应用失败: ' + e.message);
+  }
+}
+
+async function loadFromDevice() {
+  if (!ksu) { toast('仅在 KernelSU 环境下可用'); return; }
+  try {
+    // Read and parse dax-default.xml for IEQ
+    const { stdout: daxOut } = await ksuExec(`cat ${ksuModDir}/odm/etc/dolby/dax-default.xml`);
+    if (daxOut) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(daxOut, 'text/xml');
+      const presets = doc.querySelectorAll('preset[type="ieq"]');
+      presets.forEach(preset => {
+        const id = parseInt(preset.getAttribute('id'));
+        const bands = preset.querySelectorAll('band_ieq');
+        const targets = Array.from(bands).map(b => parseInt(b.getAttribute('target')));
+        const idx = IEQ_PRESETS.findIndex(p => p.id === id);
+        if (idx >= 0 && targets.length === 20) IEQ_PRESETS[idx].targets = targets;
+      });
+    }
+    // Read spatializer for scene params
+    const { stdout: spOut } = await ksuExec(`cat ${ksuModDir}/system/vendor/etc/dolby/dax-default-spatializer.xml`);
+    if (spOut) {
+      const doc = new DOMParser().parseFromString(spOut, 'text/xml');
+      for (let s = 0; s < 4; s++) {
+        const profile = doc.querySelector(`profile[id="${s}"]`);
+        if (!profile) continue;
+        for (const e of ENDPOINT_TYPES) {
+          const epEl = profile.querySelector(`endpoint_type[id="${e}"]`);
+          if (!epEl) continue;
+          const getVal = (tag, attr) => {
+            const el = epEl.querySelector(tag);
+            if (!el) return null;
+            const v = el.getAttribute(attr || 'value');
+            return v === 'true' ? true : v === 'false' ? false : parseInt(v);
+          };
+          const ep = endpoints[s][e];
+          const keys = ['ieq_enable','ieq_amount','calibration_boost','dialog_enhancer_enable','dialog_enhancer_amount','dialog_enhancer_ducking','mi_dialog_enhancer_steering_enable','mi_virtualizer_binaural_steering_enable','peak_value','surround_decoder_enable','surround_boost','volmax_boost','hearing_protection_enable','hearing_protection_rms_averaging_time_win_len','hearing_protection_rms_attenuation_target','hearing_protection_attenuation_attack_time','hearing_protection_attenuation_release_time','volume_leveler_enable','volume_leveler_amount','volume_leveler_in_target','volume_leveler_out_target','graphic_equalizer_enable','virtualizer_enable','virtualizer_start_band','headphone_virtualizer_steerer_source_distance','bass_enhancer_enable','virtual_bass_process_enable'];
+          const tagMap = { ieq_enable:'ieq-enable', ieq_amount:'ieq-amount', calibration_boost:'calibration-boost', dialog_enhancer_enable:'dialog-enhancer-enable', dialog_enhancer_amount:'dialog-enhancer-amount', dialog_enhancer_ducking:'dialog-enhancer-ducking', mi_dialog_enhancer_steering_enable:'mi-dialog-enhancer-steering-enable', mi_virtualizer_binaural_steering_enable:'mi-virtualizer-binaural-steering-enable', peak_value:'peak-value', surround_decoder_enable:'surround-decoder-enable', surround_boost:'surround-boost', volmax_boost:'volmax-boost', hearing_protection_enable:'hearing-protection-enable', hearing_protection_rms_averaging_time_win_len:'hearing-protection-rms-averaging-time-win-len', hearing_protection_rms_attenuation_target:'hearing-protection-rms-attenuation-target', hearing_protection_attenuation_attack_time:'hearing-protection-attenuation-attack-time', hearing_protection_attenuation_release_time:'hearing-protection-attenuation-release-time', volume_leveler_enable:'volume-leveler-enable', volume_leveler_amount:'volume-leveler-amount', volume_leveler_in_target:'volume-leveler-in-target', volume_leveler_out_target:'volume-leveler-out-target', graphic_equalizer_enable:'graphic-equalizer-enable', virtualizer_enable:'virtualizer-enable', virtualizer_start_band:'virtualizer-start-band', headphone_virtualizer_steerer_source_distance:'headphone-virtualizer-steerer-source-distance', bass_enhancer_enable:'bass-enhancer-enable', virtual_bass_process_enable:'virtual-bass-process-enable' };
+          for (const k of keys) {
+            const v = getVal(tagMap[k]);
+            if (v !== null && v === v) ep[k] = v;
+          }
+          const incEl = epEl.querySelector('include');
+          if (incEl) { const p = parseInt(incEl.getAttribute('ieq_preset')); if (!isNaN(p)) ep.ieq_preset = p; }
+        }
+      }
+    }
+    // Read system.prop
+    const { stdout: propOut } = await ksuExec(`cat ${ksuModDir}/system.prop`);
+    if (propOut) {
+      for (const line of propOut.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq < 0) continue;
+        const key = trimmed.substring(0, eq);
+        const val = trimmed.substring(eq + 1);
+        for (const g of PROP_GROUPS)
+          for (const p of g.props)
+            if (p.key === key) p.val = val;
+      }
+    }
+    if (eqChart) { applyIEQToChart(); }
+    renderIEQTable();
+    renderSceneEditor();
+    updateSceneXml();
+    renderProps();
+    if (ksu.toast) ksu.toast('配置已从设备加载!');
+    else toast('配置已从设备加载!');
+  } catch(e) {
+    toast('加载失败: ' + e.message);
+  }
+}
+
+// ==================== DATA ====================
+const IEQ_FREQUENCIES = [47,141,234,328,469,656,844,1031,1313,1688,2250,3000,3750,4688,5813,7125,9000,11250,13875,19688];
+
+// IEQ presets from odm/etc/dolby/dax-default.xml (system loads from odm partition)
+const IEQ_PRESETS = [
+  { id:1, name:'detailed',        type:'ieq', targets:[150,142,188,216,189,195,202,199,210,225,230,236,235,235,214,165,112,49,-24,-217] },
+  { id:2, name:'balanced',        type:'ieq', targets:[137,307,348,284,213,198,174,212,245,193,188,199,193,169,164,157,91,112,180,183] },
+  { id:3, name:'warm',            type:'ieq', targets:[177,217,188,164,143,188,184,212,255,273,188,179,183,179,174,177,51,52,80,83] },
+  { id:4, name:'headphone_ray',   type:'ieq', targets:[17,27,18,14,0,0,10,25,55,73,88,99,83,79,64,87,141,152,180,183] },
+  { id:5, name:'speaker_balanced',type:'ieq', targets:[157,167,218,218,203,188,192,192,205,213,218,209,193,159,134,97,71,22,-90,-283] },
+  { id:6, name:'speaker_warm',    type:'ieq', targets:[114,146,183,169,170,128,103,90,98,126,127,140,96,85,80,66,38,-32,-132,-275] },
+];
+
+// Extended EQ chart colors
+const EQ_COLORS = ['#6366f1','#22c55e','#eab308','#ef4444','#06b6d4','#f97316'];
+
+const SCENE_NAMES = ['Dynamic','Movie','Music','Voice'];
+const ENDPOINT_TYPES = ['speaker','headphone','other'];
+
+// Default endpoint params per scene/endpoint from dax-default-spatializer.xml
+function defaultEndpoint(scene, ep) {
+  const b = {
+    ieq_enable: true, ieq_amount: 6, ieq_preset: 2, calibration_boost: 0,
+    dialog_enhancer_enable: true, dialog_enhancer_amount: 2, dialog_enhancer_ducking: 2,
+    mi_dialog_enhancer_steering_enable: true,
+    surround_decoder_enable: true, surround_boost: scene===0?64:scene===1?88:scene===2?64:0,
+    volume_leveler_enable: true, volume_leveler_amount: scene===0||scene===2?0:1,
+    volume_leveler_in_target: -256, volume_leveler_out_target: -256,
+    volmax_boost: ep==='speaker'?64:16, peak_value: 256,
+    virtualizer_enable: ep==='speaker'?true:ep==='headphone'?true:false,
+    virtualizer_start_band: 0,
+    graphic_equalizer_enable: true,
+    bass_enhancer_enable: false, virtual_bass_process_enable: false,
+    hearing_protection_enable: false, hearing_protection_rms_averaging_time_win_len: 6,
+    hearing_protection_rms_attenuation_target: -256,
+    hearing_protection_attenuation_attack_time: 900,
+    hearing_protection_attenuation_release_time: 1600,
+    headphone_virtualizer_steerer_source_distance: 4,
+    mi_virtualizer_binaural_steering_enable: false,
+  };
+  // Per-scene overrides
+  if (scene === 1) { // Movie
+    b.ieq_enable = false;
+    b.dialog_enhancer_amount = 4;
+    if (ep === 'speaker') { b.surround_boost = 88; b.volmax_boost = 64; }
+  }
+  if (scene === 2) { // Music
+    b.dialog_enhancer_enable = false;
+    b.mi_dialog_enhancer_steering_enable = false;
+    b.dialog_enhancer_amount = 0;
+    if (ep === 'speaker') { b.volmax_boost = 32; } else { b.volmax_boost = 0; }
+  }
+  if (scene === 3) { // Voice
+    b.ieq_enable = false;
+    b.dialog_enhancer_amount = 4;
+    b.surround_boost = 0;
+    if (ep === 'speaker') b.volmax_boost = 64;
+  }
+  return b;
+}
+
+// Build endpoint data for all scenes
+let endpoints = {};
+for (let s = 0; s < 4; s++) {
+  endpoints[s] = {};
+  for (let e of ENDPOINT_TYPES) {
+    endpoints[s][e] = defaultEndpoint(s, e);
+  }
+}
+
+// Mixer paths data
+const MIXER_PATHS = [
+  { name: 'speaker', ctrls: [{name:'FSM_Scene',val:'0'},{name:'FSM_Volume',val:'243'}] },
+  { name: 'speaker-tl', ctrls: [{name:'FSM_Scene',val:'7'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'speaker-tr', ctrls: [{name:'FSM_Scene',val:'9'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'speaker-bl', ctrls: [{name:'FSM_Scene',val:'11'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'speaker-br', ctrls: [{name:'FSM_Scene',val:'13'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'speaker-mono', ctrls: [{name:'FSM_Scene',val:'0'},{name:'FSM_Volume',val:'243'}] },
+  { name: 'speaker-mono-2', ctrls: [{name:'FSM_Scene',val:'1'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'speaker-top', ctrls: [{name:'FSM_Scene',val:'7'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'speaker-bot', ctrls: [{name:'FSM_Scene',val:'9'},{name:'FSM_Volume',val:'235'}] },
+  { name: 'handset', ctrls: [{name:'FSM_Scene',val:'15'},{name:'FSM_SW_GPIO',val:'1'}] },
+];
+
+const MIC_PATHS = [
+  { name: 'sidetop-mic', desc: 'DMIC0' },
+  { name: 'sidebottom-mic', desc: 'DMIC2' },
+  { name: 'top-mic', desc: 'DMIC4' },
+  { name: 'back-mic', desc: 'DMIC6' },
+  { name: 'main-mic', desc: 'DMIC4' },
+  { name: 'handset-mic', desc: 'DMIC4' },
+  { name: 'va-mic-dmic-lpi', desc: 'DMIC0+DMIC2, Low Power' },
+  { name: 'va-mic-dmic', desc: 'DMIC0+DMIC2' },
+  { name: 'recorder-ozo-fmic', desc: '4ch OZO: DMIC0+2+4+6' },
+];
+
+// System properties
+const PROP_GROUPS = [
+  {
+    name: 'Memory Management', props: [
+      { key:'aaudio.mmap_policy', val:'2', bool:false, desc:'MMAP policy mode' },
+      { key:'aaudio.mmap_exclusive_policy', val:'2', bool:false, desc:'MMAP exclusive policy' },
+    ]
+  },
+  {
+    name: 'Audio Processing', props: [
+      { key:'ro.vendor.audio.misound.dynamic.support', val:'false', bool:true, desc:'Disable MiSound dynamic' },
+      { key:'persist.vendor.audio.auto.scenario', val:'false', bool:true, desc:'Disable auto scenario' },
+      { key:'vendor.audio.spkr_prot.tx.sampling_rate', val:'96000', bool:false, desc:'Speaker prot sampling rate' },
+      { key:'persist.vendor.audio.misound.disable', val:'true', bool:true, desc:'Disable MiSound' },
+      { key:'vendor.audio_hal.period_multiplier', val:'3', bool:false, desc:'HAL period multiplier' },
+      { key:'vendor.audio.adm.buffering.ms', val:'2', bool:false, desc:'ADM buffering (ms)' },
+      { key:'ro.vendor.audio.sfx.earadj', val:'true', bool:true, desc:'Ear adjustment SFX' },
+      { key:'ro.vendor.audio.sfx.scenario', val:'true', bool:true, desc:'Scenario SFX' },
+    ]
+  },
+  {
+    name: 'Low Power Management', props: [
+      { key:'vendor.audio.lowpower', val:'false', bool:true, desc:'Disable audio low power' },
+      { key:'ro.vendor.audio.soundtrigger.lowpower', val:'false', bool:true, desc:'Disable sound trigger LP' },
+      { key:'persist.vendor.audio.bcl.enabled', val:'false', bool:true, desc:'Disable BCL' },
+      { key:'persist.vendor.audio.ras.enabled', val:'false', bool:true, desc:'Disable RAS' },
+    ]
+  },
+  {
+    name: 'Legacy Compatibility', props: [
+      { key:'persist.vendor.audio.misoundasc', val:'false', bool:true, desc:'MiSound ASC (legacy)' },
+    ]
+  },
+  {
+    name: 'System Debug & Interfaces', props: [
+      { key:'ro.vendor.audio.dump.mixer', val:'true', bool:true, desc:'Dump mixer state' },
+      { key:'ro.audio.usb.period_us', val:'0', bool:false, desc:'USB period (us)' },
+      { key:'ro.vendor.audio.soundfx.usb', val:'false', bool:true, desc:'USB sound effects' },
+    ]
+  },
+  {
+    name: 'Codec Configuration', props: [
+      { key:'vendor.audio.use.sw.alac.decoder', val:'false', bool:true, desc:'SW ALAC decoder' },
+      { key:'vendor.audio.use.sw.ape.decoder', val:'false', bool:true, desc:'SW APE decoder' },
+      { key:'vendor.audio.use.sw.mpegh.decoder', val:'false', bool:true, desc:'SW MPEG-H decoder' },
+    ]
+  },
+  {
+    name: 'Bluetooth & AAC Control', props: [
+      { key:'persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled', val:'false', bool:true, desc:'BT AAC frame control' },
+      { key:'ro.persist.vendor.bt.aac_vbr_frm_ctl.enabled', val:'true', bool:true, desc:'BT AAC VBR frame ctl' },
+      { key:'ro.vendor.audio.misound.bluetooth.enable', val:'false', bool:true, desc:'MiSound BT enable' },
+    ]
+  },
+  {
+    name: 'Core Features', props: [
+      { key:'vendor.audio.feature.hifi_audio.enable', val:'true', bool:true, desc:'HiFi audio feature' },
+      { key:'vendor.audio.feature.ras.enable', val:'false', bool:true, desc:'RAS feature' },
+      { key:'vendor.audio.feature.src_trkn.enable', val:'false', bool:true, desc:'SRC tracking' },
+      { key:'ro.vendor.audio.aiasst.support', val:'true', bool:true, desc:'AI assistant support' },
+      { key:'vendor.audio.tunnel.encode', val:'true', bool:true, desc:'Tunnel encode' },
+      { key:'audio.deep_buffer.media', val:'true', bool:true, desc:'Deep buffer media' },
+      { key:'vendor.audio.feature.maxx_audio.enable', val:'true', bool:true, desc:'MaxxAudio feature' },
+      { key:'vendor.audio.safx.pbe.enabled', val:'true', bool:true, desc:'PBE (Perceptual Bass)' },
+    ]
+  },
+  {
+    name: 'Hardware Offload & PCM', props: [
+      { key:'vendor.audio.offload.gapless.enabled', val:'true', bool:true, desc:'Gapless offload' },
+      { key:'vendor.audio.offload.track.enable', val:'true', bool:true, desc:'Offload track' },
+      { key:'vendor.audio.offload.multiple.enabled', val:'true', bool:true, desc:'Multiple offload' },
+      { key:'vendor.audio.offload.passthrough', val:'true', bool:true, desc:'Offload passthrough' },
+      { key:'audio.offload.pcm.enable', val:'true', bool:true, desc:'PCM offload' },
+      { key:'audio.offload.pcm.16bit.enable', val:'true', bool:true, desc:'16-bit PCM offload' },
+      { key:'audio.offload.pcm.24bit.enable', val:'true', bool:true, desc:'24-bit PCM offload' },
+      { key:'audio.offload.pcm.32bit.enable', val:'true', bool:true, desc:'32-bit PCM offload' },
+      { key:'audio.offload.pcm.float.enable', val:'true', bool:true, desc:'Float PCM offload' },
+      { key:'persist.audio.format.24bit', val:'true', bool:true, desc:'24-bit format' },
+      { key:'persist.audio.format.32bit', val:'true', bool:true, desc:'32-bit format' },
+      { key:'persist.audio.format.float', val:'true', bool:true, desc:'Float format' },
+      { key:'persist.vendor.audio.format.24bit', val:'true', bool:true, desc:'Vendor 24-bit' },
+      { key:'persist.vendor.audio.format.32bit', val:'true', bool:true, desc:'Vendor 32-bit' },
+      { key:'persist.vendor.audio.format.float', val:'true', bool:true, desc:'Vendor float' },
+    ]
+  },
+  {
+    name: 'Dolby & Brand Extensions', props: [
+      { key:'vendor.audio.dolby.ds2.enabled', val:'true', bool:true, desc:'Dolby DS2' },
+      { key:'vendor.audio.dolby.ds2.hardbypass', val:'true', bool:true, desc:'Dolby DS2 hard bypass' },
+    ]
+  },
+];
+
+// Current editing state
+let currentIEQPreset = 0;
+let currentScene = 0;
+let currentEndpoint = 'speaker';
+let eqChart = null;
+
+// ==================== NAVIGATION ====================
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    if (page === 'ieq') { initEQChart(); renderIEQTable(); }
+    if (page === 'scenes') { renderSceneEditor(); updateSceneXml(); }
+    if (page === 'mixer') { renderMixerPaths(); }
+    if (page === 'props') { renderProps(); }
+  });
+});
+
+// ==================== DASHBOARD ====================
+
+// ==================== IEQ EQUALIZER ====================
+function initEQChart() {
+  if (eqChart) return;
+  const ctx = document.getElementById('eqChart').getContext('2d');
+  const datasets = IEQ_PRESETS.map((p, i) => ({
+    label: p.name,
+    data: p.targets.map(t => t / 100),
+    borderColor: EQ_COLORS[i],
+    backgroundColor: EQ_COLORS[i] + '18',
+    borderWidth: 2,
+    pointRadius: i < 3 ? 3 : 1,
+    pointHoverRadius: 6,
+    tension: 0.4,
+    hidden: i >= 3,
+  }));
+  eqChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: IEQ_FREQUENCIES.map(f => f >= 1000 ? (f/1000).toFixed(1)+'k' : f), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { type: 'logarithmic', title: { display: true, text: '频率 (Hz)', color: '#9898ac' }, ticks: { color: '#9898ac', font: { size: 10 } }, grid: { color: '#2a2a3850' } },
+        y: { title: { display: true, text: 'Target (dB)', color: '#9898ac' }, ticks: { color: '#9898ac', callback: v => (v*100).toFixed(0)+'mB' }, grid: { color: '#2a2a3850' } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + (ctx.parsed.y * 100).toFixed(0) + ' (' + (ctx.parsed.y).toFixed(2) + ' dB)' } }
+      },
+      interaction: { mode: 'nearest', intersect: false },
+    }
+  });
+  const legend = document.getElementById('eqLegend');
+  legend.innerHTML = IEQ_PRESETS.map((p,i) => {
+    const c = EQ_COLORS[i];
+    const hidden = i >= 3;
+    return `<span style="cursor:pointer;opacity:${hidden?'0.35':'1'}" data-idx="${i}"><span class="dot" style="background:${c}"></span>${p.name}</span>`;
+  }).join('');
+  legend.querySelectorAll('span').forEach(s => {
+    s.addEventListener('click', () => {
+      const idx = parseInt(s.dataset.idx);
+      const meta = eqChart.getDatasetMeta(idx);
+      meta.hidden = !meta.hidden;
+      s.style.opacity = meta.hidden ? '0.35' : '1';
+      eqChart.update();
+    });
+  });
+}
+
+function renderIEQTable() {
+  const preset = IEQ_PRESETS[currentIEQPreset];
+  const tbody = document.getElementById('ieqTableBody');
+  tbody.innerHTML = preset.targets.map((t, i) =>
+    `<tr><td>${IEQ_FREQUENCIES[i]} Hz</td><td><input type="number" value="${t}" data-idx="${i}" onchange="updateIEQValue(this)"></td></tr>`
+  ).join('');
+}
+
+function updateIEQValue(input) {
+  const idx = parseInt(input.dataset.idx);
+  const val = parseInt(input.value);
+  if (isNaN(val)) return;
+  IEQ_PRESETS[currentIEQPreset].targets[idx] = val;
+  applyIEQToChart();
+}
+
+function applyIEQToChart() {
+  if (!eqChart) return;
+  IEQ_PRESETS.forEach((p, i) => {
+    eqChart.data.datasets[i].data = p.targets.map(t => t / 100);
+  });
+  eqChart.update();
+}
+
+function resetIEQCurrent() {
+  const defaults = [
+    [150,142,188,216,189,195,202,199,210,225,230,236,235,235,214,165,112,49,-24,-217],
+    [137,307,348,284,213,198,174,212,245,193,188,199,193,169,164,157,91,112,180,183],
+    [177,217,188,164,143,188,184,212,255,273,188,179,183,179,174,177,51,52,80,83],
+    [17,27,18,14,0,0,10,25,55,73,88,99,83,79,64,87,141,152,180,183],
+    [157,167,218,218,203,188,192,192,205,213,218,209,193,159,134,97,71,22,-90,-283],
+    [114,146,183,169,170,128,103,90,98,126,127,140,96,85,80,66,38,-32,-132,-275],
+  ];
+  IEQ_PRESETS[currentIEQPreset].targets = [...defaults[currentIEQPreset]];
+  renderIEQTable();
+  applyIEQToChart();
+  toast('预设已重置');
+}
+
+document.getElementById('ieqPresetTabs').addEventListener('click', e => {
+  if (e.target.classList.contains('tab')) {
+    document.querySelectorAll('#ieqPresetTabs .tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    currentIEQPreset = parseInt(e.target.dataset.preset);
+    renderIEQTable();
+  }
+});
+
+// ==================== SCENE EDITOR ====================
+function renderSceneEditor() {
+  const ep = endpoints[currentScene][currentEndpoint];
+  const container = document.getElementById('sceneParams');
+  const renderForm = (section, fields) => `
+    <div class="form-col">
+      <div class="param-section">
+        <h4>${section}</h4>
+        ${fields.map(f => renderField(f, ep)).join('')}
+      </div>
+    </div>`;
+
+  const sections = [
+    ['IEQ & Calibration', [
+      {key:'ieq_enable',label:'IEQ Enable',type:'bool'},
+      {key:'ieq_amount',label:'IEQ Amount',type:'num',min:0,max:10},
+      {key:'ieq_preset',label:'IEQ Preset',type:'select',options:['0 (GEQ)','1 (Detailed)','2 (Balanced)','3 (Warm)','4 (Headphone Ray)','5 (Speaker Balanced)','6 (Speaker Warm)']},
+      {key:'calibration_boost',label:'Calibration Boost',type:'num'},
+    ]],
+    ['Dialog Enhancer', [
+      {key:'mi_dialog_enhancer_steering_enable',label:'Steering Enable',type:'bool'},
+      {key:'dialog_enhancer_enable',label:'Enhancer Enable',type:'bool'},
+      {key:'dialog_enhancer_amount',label:'Amount',type:'num',min:0,max:10},
+      {key:'dialog_enhancer_ducking',label:'Ducking',type:'num',min:0,max:10},
+    ]],
+    ['Surround Decoder', [
+      {key:'surround_decoder_enable',label:'Enable',type:'bool'},
+      {key:'surround_boost',label:'Boost',type:'num'},
+    ]],
+    ['Volume', [
+      {key:'volume_leveler_enable',label:'Leveler Enable',type:'bool'},
+      {key:'volume_leveler_amount',label:'Leveler Amount',type:'num',min:0,max:10},
+      {key:'volmax_boost',label:'VolMax Boost',type:'num'},
+      {key:'peak_value',label:'Peak Value',type:'num'},
+    ]],
+    ['Virtualizer', [
+      {key:'virtualizer_enable',label:'Enable',type:'bool'},
+      {key:'virtualizer_start_band',label:'Start Band',type:'num'},
+      {key:'headphone_virtualizer_steerer_source_distance',label:'Source Distance',type:'num',min:0,max:20},
+      {key:'mi_virtualizer_binaural_steering_enable',label:'Binaural Steering',type:'bool'},
+    ]],
+    ['Bass', [
+      {key:'bass_enhancer_enable',label:'Bass Enhancer',type:'bool'},
+      {key:'virtual_bass_process_enable',label:'Virtual Bass',type:'bool'},
+    ]],
+    ['Hearing Protection', [
+      {key:'hearing_protection_enable',label:'Enable',type:'bool'},
+      {key:'hearing_protection_rms_averaging_time_win_len',label:'RMS Window Length',type:'num'},
+      {key:'hearing_protection_rms_attenuation_target',label:'RMS Attenuation Target',type:'num'},
+      {key:'hearing_protection_attenuation_attack_time',label:'Attack Time (ms)',type:'num'},
+      {key:'hearing_protection_attenuation_release_time',label:'Release Time (ms)',type:'num'},
+    ]],
+  ];
+
+  container.innerHTML = sections.map(([title, fields], i) => {
+    const html = renderForm(title, fields);
+    return i % 2 === 0 ? `<div class="form-row">${html}` : `${html}</div>`;
+  }).join('') + ((sections.length % 2 !== 0) ? '</div>' : '');
+}
+
+function renderField(f, ep) {
+  const val = ep[f.key];
+  if (f.type === 'bool') {
+    return `<div class="form-group">
+      <label>${f.label}</label>
+      <label class="toggle"><input type="checkbox" data-key="${f.key}" ${val?'checked':''} onchange="updateEndpointParam(this)"><span class="slider"></span></label>
+    </div>`;
+  }
+  if (f.type === 'select') {
+    return `<div class="form-group">
+      <label>${f.label}</label>
+      <select data-key="${f.key}" onchange="updateEndpointParam(this)">
+        ${f.options.map((o,i) => `<option value="${i}" ${i===val?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  return `<div class="form-group">
+    <label>${f.label}</label>
+    <input type="number" value="${val}" data-key="${f.key}" onchange="updateEndpointParam(this)" ${f.min!=null?'min='+f.min:''} ${f.max!=null?'max='+f.max:''}>
+  </div>`;
+}
+
+function updateEndpointParam(el) {
+  const key = el.dataset.key;
+  let val;
+  if (el.type === 'checkbox') val = el.checked;
+  else if (el.tagName === 'SELECT') val = parseInt(el.value);
+  else val = parseInt(el.value);
+  endpoints[currentScene][currentEndpoint][key] = val;
+  updateSceneXml();
+}
+
+function updateSceneXml() {
+  const ep = endpoints[currentScene][currentEndpoint];
+  const pre = document.getElementById('sceneXmlPreview');
+  let xml = `<endpoint_type id="${currentEndpoint}">\n`;
+  xml += `  <include ieq_preset="${ep.ieq_preset}" />\n`;
+  xml += `  <ieq-enable value="${ep.ieq_enable}" />\n`;
+  xml += `  <ieq-amount value="${ep.ieq_amount}" />\n`;
+  xml += `  <calibration-boost value="${ep.calibration_boost}" />\n`;
+  xml += `  <mi-dialog-enhancer-steering-enable value="${ep.mi_dialog_enhancer_steering_enable}" />\n`;
+  xml += `  <dialog-enhancer-enable value="${ep.dialog_enhancer_enable}" />\n`;
+  xml += `  <dialog-enhancer-amount value="${ep.dialog_enhancer_amount}" />\n`;
+  xml += `  <dialog-enhancer-ducking value="${ep.dialog_enhancer_ducking}" />\n`;
+  xml += `  <mi-virtualizer-binaural-steering-enable value="${ep.mi_virtualizer_binaural_steering_enable}" />\n`;
+  xml += `  <peak-value value="${ep.peak_value}" />\n`;
+  xml += `  <surround-decoder-enable value="${ep.surround_decoder_enable}" />\n`;
+  xml += `  <surround-boost value="${ep.surround_boost}" />\n`;
+  xml += `  <volmax-boost value="${ep.volmax_boost}" />\n`;
+  xml += `  <hearing-protection-enable value="${ep.hearing_protection_enable}" />\n`;
+  xml += `  <hearing-protection-rms-averaging-time-win-len value="${ep.hearing_protection_rms_averaging_time_win_len}" />\n`;
+  xml += `  <hearing-protection-rms-attenuation-target value="${ep.hearing_protection_rms_attenuation_target}" />\n`;
+  xml += `  <hearing-protection-attenuation-attack-time value="${ep.hearing_protection_attenuation_attack_time}" />\n`;
+  xml += `  <hearing-protection-attenuation-release-time value="${ep.hearing_protection_attenuation_release_time}" />\n`;
+  xml += `  <volume-leveler-enable value="${ep.volume_leveler_enable}" />\n`;
+  xml += `  <volume-leveler-amount value="${ep.volume_leveler_amount}" />\n`;
+  xml += `  <volume-leveler-in-target value="${ep.volume_leveler_in_target}" />\n`;
+  xml += `  <volume-leveler-out-target value="${ep.volume_leveler_out_target}" />\n`;
+  xml += `  <graphic-equalizer-enable value="${ep.graphic_equalizer_enable}" />\n`;
+  xml += `  <virtualizer-enable value="${ep.virtualizer_enable}" />\n`;
+  xml += `  <virtualizer-start-band value="${ep.virtualizer_start_band}" />\n`;
+  xml += `  <headphone-virtualizer-steerer-source-distance value="${ep.headphone_virtualizer_steerer_source_distance}" />\n`;
+  xml += `  <bass-enhancer-enable value="${ep.bass_enhancer_enable}" />\n`;
+  xml += `  <virtual-bass-process-enable value="${ep.virtual_bass_process_enable}" />\n`;
+  xml += `</endpoint_type>`;
+  pre.textContent = xml;
+}
+
+document.getElementById('sceneTabs').addEventListener('click', e => {
+  if (e.target.classList.contains('tab')) {
+    document.querySelectorAll('#sceneTabs .tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    currentScene = parseInt(e.target.dataset.scene);
+    renderSceneEditor();
+    updateSceneXml();
+  }
+});
+document.getElementById('endpointTabs').addEventListener('click', e => {
+  if (e.target.classList.contains('subtab')) {
+    document.querySelectorAll('#endpointTabs .subtab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    currentEndpoint = e.target.dataset.endpoint;
+    renderSceneEditor();
+    updateSceneXml();
+  }
+});
+
+// ==================== MIXER PATHS ====================
+function renderMixerPaths() {
+  const container = document.getElementById('mixerContent');
+  let html = '<div class="card"><div class="card-header">&#128264; 扬声器通路</div>';
+  html += '<div class="table-wrap"><table><thead><tr><th>通路名称</th><th>FSM Scene</th><th>FSM Volume</th><th>其他控制</th></tr></thead><tbody>';
+  for (const p of MIXER_PATHS) {
+    const scene = p.ctrls.find(c => c.name === 'FSM_Scene');
+    const vol = p.ctrls.find(c => c.name === 'FSM_Volume');
+    const other = p.ctrls.filter(c => c.name !== 'FSM_Scene' && c.name !== 'FSM_Volume');
+    html += `<tr><td style="font-family:monospace;color:var(--accent)">${p.name}</td>
+      <td>${scene?scene.val:'—'}</td>
+      <td>${vol?vol.val:'—'}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${other.map(c=>c.name+'='+c.val).join(', ')||'—'}</td></tr>`;
+  }
+  html += '</tbody></table></div></div>';
+
+  html += '<div class="card" style="margin-top:16px"><div class="card-header">&#127908; 麦克风通路</div>';
+  html += '<div class="table-wrap"><table><thead><tr><th>通路名称</th><th>描述</th></tr></thead><tbody>';
+  for (const m of MIC_PATHS) {
+    html += `<tr><td style="font-family:monospace;color:var(--cyan)">${m.name}</td><td>${m.desc}</td></tr>`;
+  }
+  html += '</tbody></table></div></div>';
+
+  html += '<div class="card" style="margin-top:16px"><div class="card-header">&#9888; 全局控制</div>';
+  html += '<table><thead><tr><th>控制名称</th><th>值</th></tr></thead><tbody>';
+  const globals = [
+    ['TX_DEC0 Volume','90'],['TX_DEC1 Volume','90'],['TX_DEC2 Volume','90'],
+    ['TX_DEC3 Volume','90'],['TX_DEC4 Volume','90'],['SWR DAC_Port Switch','1'],
+    ['FSM_Scene','0'],['FSM_Stop','1'],['FSM_Volume','255'],
+    ['FSM_Ultrasound_Enable','0'],['FSM_SW_GPIO','0'],
+  ];
+  for (const [n, v] of globals) {
+    html += `<tr><td style="font-family:monospace">${n}</td><td>${v}</td></tr>`;
+  }
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// ==================== PROPS ====================
+function renderProps() {
+  const container = document.getElementById('propsContent');
+  let html = '';
+  for (const group of PROP_GROUPS) {
+    html += `<div class="card prop-group"><div class="card-header">${group.name} <span style="font-size:11px;color:var(--text-muted);font-weight:400">(${group.props.length}项)</span></div>`;
+    html += '<div class="table-wrap"><table><thead><tr><th style="width:45%">属性名</th><th style="width:15%">值</th><th style="width:25%">说明</th><th style="width:15%">操作</th></tr></thead><tbody>';
+    for (const p of group.props) {
+      html += `<tr>
+        <td style="font-family:monospace;font-size:12px;word-break:break-all">${p.key}</td>
+        <td>${p.bool
+          ? `<span class="device-badge" style="font-size:11px;background:${p.val==='true'?'var(--green)20':'var(--red)20'};color:${p.val==='true'?'var(--green)':'var(--red)'};border-color:${p.val==='true'?'var(--green)':'var(--red)'}">${p.val}</span>`
+          : `<code style="color:var(--cyan)">${p.val}</code>`}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${p.desc}</td>
+        <td>${p.bool
+          ? `<label class="toggle"><input type="checkbox" ${p.val==='true'?'checked':''} onchange="toggleProp('${group.name}','${p.key}',this.checked)"><span class="slider"></span></label>`
+          : `<input type="text" value="${p.val}" style="width:80px;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:4px 8px;border-radius:4px;font-size:12px" onchange="updatePropValue('${group.name}','${p.key}',this.value)">`}</td>
+      </tr>`;
+    }
+    html += '</tbody></table></div></div>';
+  }
+  container.innerHTML = html;
+}
+
+function toggleProp(groupName, key, checked) {
+  for (const g of PROP_GROUPS) {
+    if (g.name === groupName) {
+      const p = g.props.find(p => p.key === key);
+      if (p) p.val = checked ? 'true' : 'false';
+    }
+  }
+  renderProps();
+}
+
+function updatePropValue(groupName, key, value) {
+  for (const g of PROP_GROUPS) {
+    if (g.name === groupName) {
+      const p = g.props.find(p => p.key === key);
+      if (p) p.val = value;
+    }
+  }
+}
+
+function resetProps() {
+  const defaults = {
+    'aaudio.mmap_policy':'2','aaudio.mmap_exclusive_policy':'2',
+    'ro.vendor.audio.misound.dynamic.support':'false','persist.vendor.audio.auto.scenario':'false',
+    'vendor.audio.spkr_prot.tx.sampling_rate':'96000','persist.vendor.audio.misound.disable':'true',
+    'vendor.audio_hal.period_multiplier':'3','vendor.audio.adm.buffering.ms':'2',
+    'ro.vendor.audio.sfx.earadj':'true','ro.vendor.audio.sfx.scenario':'true',
+    'vendor.audio.lowpower':'false','ro.vendor.audio.soundtrigger.lowpower':'false',
+    'persist.vendor.audio.bcl.enabled':'false','persist.vendor.audio.ras.enabled':'false',
+    'persist.vendor.audio.misoundasc':'false',
+    'ro.vendor.audio.dump.mixer':'true','ro.audio.usb.period_us':'0','ro.vendor.audio.soundfx.usb':'false',
+    'vendor.audio.use.sw.alac.decoder':'false','vendor.audio.use.sw.ape.decoder':'false','vendor.audio.use.sw.mpegh.decoder':'false',
+    'persist.vendor.qcom.bluetooth.aac_frm_ctl.enabled':'false','ro.persist.vendor.bt.aac_vbr_frm_ctl.enabled':'true','ro.vendor.audio.misound.bluetooth.enable':'false',
+    'vendor.audio.feature.hifi_audio.enable':'true','vendor.audio.feature.ras.enable':'false',
+    'vendor.audio.feature.src_trkn.enable':'false','ro.vendor.audio.aiasst.support':'true',
+    'vendor.audio.tunnel.encode':'true','audio.deep_buffer.media':'true',
+    'vendor.audio.feature.maxx_audio.enable':'true','vendor.audio.safx.pbe.enabled':'true',
+    'vendor.audio.offload.gapless.enabled':'true','vendor.audio.offload.track.enable':'true',
+    'vendor.audio.offload.multiple.enabled':'true','vendor.audio.offload.passthrough':'true',
+    'audio.offload.pcm.enable':'true','audio.offload.pcm.16bit.enable':'true',
+    'audio.offload.pcm.24bit.enable':'true','audio.offload.pcm.32bit.enable':'true',
+    'audio.offload.pcm.float.enable':'true',
+    'persist.audio.format.24bit':'true','persist.audio.format.32bit':'true','persist.audio.format.float':'true',
+    'persist.vendor.audio.format.24bit':'true','persist.vendor.audio.format.32bit':'true','persist.vendor.audio.format.float':'true',
+    'vendor.audio.dolby.ds2.enabled':'true','vendor.audio.dolby.ds2.hardbypass':'true',
+  };
+  for (const g of PROP_GROUPS) {
+    for (const p of g.props) {
+      if (defaults[p.key] !== undefined) p.val = defaults[p.key];
+    }
+  }
+  renderProps();
+  toast('所有属性已重置为默认值');
+}
+
+// ==================== UTILS ====================
+function toggleCollapse(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function resetAll() {
+  const ieqDef = [
+    [150,142,188,216,189,195,202,199,210,225,230,236,235,235,214,165,112,49,-24,-217],
+    [137,307,348,284,213,198,174,212,245,193,188,199,193,169,164,157,91,112,180,183],
+    [177,217,188,164,143,188,184,212,255,273,188,179,183,179,174,177,51,52,80,83],
+    [17,27,18,14,0,0,10,25,55,73,88,99,83,79,64,87,141,152,180,183],
+    [157,167,218,218,203,188,192,192,205,213,218,209,193,159,134,97,71,22,-90,-283],
+    [114,146,183,169,170,128,103,90,98,126,127,140,96,85,80,66,38,-32,-132,-275],
+  ];
+  IEQ_PRESETS.forEach((p,i) => p.targets = [...ieqDef[i]]);
+  // Reset endpoints
+  for (let s = 0; s < 4; s++)
+    for (let e of ENDPOINT_TYPES)
+      endpoints[s][e] = defaultEndpoint(s, e);
+  resetProps();
+  if (eqChart) { applyIEQToChart(); }
+  renderIEQTable();
+  renderSceneEditor();
+  updateSceneXml();
+  toast('所有配置已重置');
+}
+
+// ==================== EXPORT ====================
+function buildSpatializerXml() {
+  const sceneData = [
+    { mi_dv: true, mi_ieq: true, mi_sc: false, mi_av: false, hvm: 2, avrc: '103,32568,11164,5090,0,3,3,3' },
+    { mi_dv: false, mi_ieq: false, mi_sc: false, mi_av: false, hvm: 2, avrc: '103,32568,11164,5090,0,1,2,2' },
+    { mi_dv: false, mi_ieq: false, mi_sc: false, mi_av: false, hvm: 2, avrc: '103,32568,11164,5090,0,3,3,3' },
+    { mi_dv: false, mi_ieq: false, mi_sc: false, mi_av: false, hvm: 2, avrc: '103,32568,11164,5090,0,1,1,1' },
+  ];
+
+  let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
+  xml += '<device_data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n';
+  xml += '  <format_version major="3" minor="7" maintenance="0" />\n';
+  xml += '  <tool_version major="3" minor="16" maintenance="0" />\n';
+
+  // IEQ presets (id 1-3 only for spatializer file; full 6 in dax-default.xml)
+  for (let i = 0; i < 3; i++) {
+    xml += `  <preset id="${i+1}" name="${IEQ_PRESETS[i].name}" type="ieq">\n    <data>\n      <ieq-bands>\n`;
+    for (let j = 0; j < 20; j++) {
+      xml += `        <band_ieq frequency="${IEQ_FREQUENCIES[j]}" target="${IEQ_PRESETS[i].targets[j]}" />\n`;
+    }
+    xml += '      </ieq-bands>\n    </data>\n  </preset>\n';
+  }
+
+  // GEQ presets (flat, id 0-3)
+  for (let i = 0; i < 4; i++) {
+    xml += `  <preset id="${i}" type="geq">\n    <data>\n      <graphic-equalizer-bands>\n`;
+    for (let j = 0; j < 20; j++) {
+      xml += `        <band_geq frequency="${IEQ_FREQUENCIES[j]}" gain="0" />\n`;
+    }
+    xml += '      </graphic-equalizer-bands>\n    </data>\n  </preset>\n';
+  }
+
+  // Profiles
+  for (let s = 0; s < 4; s++) {
+    const sd = sceneData[s];
+    xml += `  <profile id="${s}" name="${SCENE_NAMES[s]}" group="spatializer">\n    <data>\n`;
+    xml += `      <mi-dv-leveler-steering-enable value="${sd.mi_dv}" />\n`;
+    xml += `      <mi-ieq-steering-enable value="${sd.mi_ieq}" />\n`;
+    xml += `      <mi-surround-compressor-steering-enable value="${sd.mi_sc}" />\n`;
+    xml += `      <mi-adaptive-virtualizer-steering-enable value="${sd.mi_av}" />\n`;
+    xml += `      <volume-modeler-enable value="false" />\n<drc-metadata/>\n`;
+    xml += `      <reverb-suppression-enable value="false" />\n<reverb-suppression-amount value="0" />\n`;
+    xml += `      <headphone-virtualizer-mode value="${sd.hvm}" />\n`;
+    xml += `      <advanced-headphone-virtualizer-rendering-config value="${sd.avrc}" />\n`;
+    xml += `      <surround-decoder-diffuse-relocating-to-front-amount value="0"/>\n`;
+    xml += `      <advanced-headphone-virtualizer-lr-angle value="45"/>\n`;
+
+    for (const e of ENDPOINT_TYPES) {
+      const ep = endpoints[s][e];
+      xml += `      <endpoint_type id="${e}">\n`;
+      xml += `        <include ieq_preset="${ep.ieq_preset}" />\n`;
+      xml += `        <ieq-enable value="${ep.ieq_enable}" />\n`;
+      xml += `        <ieq-amount value="${ep.ieq_amount}" />\n`;
+      xml += `        <calibration-boost value="${ep.calibration_boost}" />\n`;
+      xml += `        <mi-dialog-enhancer-steering-enable value="${ep.mi_dialog_enhancer_steering_enable}" />\n`;
+      xml += `        <dialog-enhancer-enable value="${ep.dialog_enhancer_enable}" />\n`;
+      xml += `        <dialog-enhancer-amount value="${ep.dialog_enhancer_amount}" />\n`;
+      xml += `        <dialog-enhancer-ducking value="${ep.dialog_enhancer_ducking}" />\n`;
+      xml += `        <mi-virtualizer-binaural-steering-enable value="${ep.mi_virtualizer_binaural_steering_enable}" />\n`;
+      xml += `        <peak-value value="${ep.peak_value}" />\n`;
+      xml += `        <surround-decoder-enable value="${ep.surround_decoder_enable}" />\n`;
+      xml += `        <surround-boost value="${ep.surround_boost}" />\n`;
+      xml += `        <volmax-boost value="${ep.volmax_boost}" />\n`;
+      xml += `        <hearing-protection-enable value="${ep.hearing_protection_enable}" />\n`;
+      xml += `        <hearing-protection-rms-averaging-time-win-len value="${ep.hearing_protection_rms_averaging_time_win_len}" />\n`;
+      xml += `        <hearing-protection-rms-attenuation-target value="${ep.hearing_protection_rms_attenuation_target}" />\n`;
+      xml += `        <hearing-protection-attenuation-attack-time value="${ep.hearing_protection_attenuation_attack_time}" />\n`;
+      xml += `        <hearing-protection-attenuation-release-time value="${ep.hearing_protection_attenuation_release_time}" />\n`;
+      xml += `        <volume-leveler-enable value="${ep.volume_leveler_enable}" />\n`;
+      xml += `        <volume-leveler-amount value="${ep.volume_leveler_amount}" />\n`;
+      xml += `        <volume-leveler-in-target value="${ep.volume_leveler_in_target}" />\n`;
+      xml += `        <volume-leveler-out-target value="${ep.volume_leveler_out_target}" />\n`;
+      xml += `        <graphic-equalizer-enable value="${ep.graphic_equalizer_enable}" />\n`;
+      xml += `        <virtualizer-enable value="${ep.virtualizer_enable}" />\n`;
+      xml += `        <virtualizer-start-band value="${ep.virtualizer_start_band}" />\n`;
+      xml += `        <headphone-virtualizer-steerer-source-distance value="${ep.headphone_virtualizer_steerer_source_distance}" />\n`;
+      xml += `        <bass-enhancer-enable value="${ep.bass_enhancer_enable}" />\n`;
+      xml += `        <virtual-bass-process-enable value="${ep.virtual_bass_process_enable}" />\n`;
+      xml += `      </endpoint_type>\n`;
+    }
+    xml += '    </data>\n  </profile>\n';
+  }
+
+  // Static tuning sections — device-specific hardware tuning, not user-editable
+  xml += TUNING_TEMPLATE;
+  return xml;
+}
+
+const TUNING_TEMPLATE = `  <tuning name="speaker" endpoint_type="speaker" mono_device="false" tuned_rate="48000" orientation="1" output_channels="2">
+    <device_id id="default_internal_speaker" endpoint_port="internal_speaker" />
+    <device_id id="speaker" endpoint_port="internal_speaker" />
+    <data>
+      <audio-optimizer-bands>
+        <band_optimizer frequency="47" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="141" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="234" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="328" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="469" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="656" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="844" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="1031" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="1313" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="1688" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="2250" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="3000" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="3750" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="4688" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="5813" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="7125" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="9000" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="11250" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="13875" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="19688" gain_left="0" gain_right="0" />
+      </audio-optimizer-bands>
+      <regulator-tuning>
+        <band_regulator frequency="47" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="141" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="234" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="328" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="469" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="656" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="844" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="1031" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="1313" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="1688" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="2250" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="3000" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="3750" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="4688" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="5813" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="7125" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="9000" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="11250" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="13875" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="19688" threshold_low="-192" threshold_high="0" isolated_band="false" />
+      </regulator-tuning>
+      <regulator-sibilance-suppress-amounts-left />
+      <regulator-sibilance-suppress-amounts-right />
+      <bass-enhancer-boost value="192" />
+      <bass-enhancer-cutoff-frequency value="200" />
+      <bass-enhancer-width value="16" />
+      <bass-extraction-cutoff-frequency value="200" />
+      <complex-equalizer-tuning-left value="0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0" />
+      <complex-equalizer-tuning-right value="0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0,32767,0" />
+      <height-filter-mode value="0" />
+      <speaker-virtualizer-mode value="2" />
+      <advanced-speaker-virtualizer-start-bin value="6" />
+      <advanced-speaker-virtualizer-rendering-config value="103,32568,6698,5090,0,3,3,3" />
+      <output-mode>
+        <mix_matrix>
+          <element value="10,12,16384,0,0,16384,11583,11583,8192,8192,16384,0,0,16384" />
+          <element value="11,16,16384,0,0,16384,11583,11583,8192,8192,16384,0,0,16384,16384,0,0,16384" />
+          <element value="15,24,16384,0,0,16384,11583,11583,8192,8192,16384,0,0,16384,16384,0,0,16384,16384,0,0,16384,16384,0,0,16384" />
+        </mix_matrix>
+      </output-mode>
+      <regulator-overdrive value="0" />
+      <regulator-timbre-preservation value="12" />
+      <regulator-stress-amount value="96,96,96,96" />
+      <regulator-distortion-slope value="16"/>
+      <virtual-bass-mode value="3" />
+      <virtual-bass-overall-gain value="0" />
+      <virtual-bass-slope-gain value="0" />
+      <virtual-bass-mix-freqs frequency_low="94" frequency_high="469" />
+      <virtual-bass-src-freqs frequency_low="35" frequency_high="160" />
+      <virtual-bass-subgains harmonic_2="-32" harmonic_3="-144" harmonic_4="-192" />
+      <virtual-bass-harmgains value="-2080,48,48,48"/>
+      <virtual-bass-hybgains value="0,0,0,0,0,0"/>
+      <virtual-bass-rolloff-gain value="0"/>
+      <virtual-bass-blend-linear-gain value="10"/>
+      <virtual-bass-mix-frequency value="100,1500"/>
+      <virtual-bass-compressor-tuning value="0,0,-320,96,32,50,50"/>
+      <bass-mbdrc-tuning value="1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0,1,-1600,0,-1120,-400,-240,0,5,10,0"/>
+      <virtualizer-front-speaker-angle value="10" />
+      <virtualizer-height-speaker-angle value="10" />
+      <virtualizer-surround-speaker-angle value="10" />
+      <virtualizer-rear-height-speaker-angle value="10" />
+      <virtualizer-rear-surround-speaker-angle value="10" />
+      <volume-modeler-calibration value="0" />
+      <audio-optimizer-enable value="true" />
+      <volume-leveler-compressor-enable value="false" />
+      <bass-extraction-enable value="false" />
+      <complex-equalizer-enable value="true" />
+      <regulator-enable value="true" />
+      <regulator-speaker-dist-enable value="true" />
+      <regulator-sibilance-suppress-enable value="false" />
+      <bass-mbdrc-enable value="true" />
+    </data>
+  </tuning>
+  <tuning name="headphone" endpoint_type="headphone" mono_device="false" tuned_rate="48000" orientation="2" output_channels="2">
+    <device_id id="default_headphone" endpoint_port="headphone" />
+    <device_id id="default_bluetooth" endpoint_port="bluetooth" />
+    <device_id id="default_usb" endpoint_port="usb" />
+    <device_id id="headphone" endpoint_port="headphone" />
+    <data>
+      <audio-optimizer-bands>
+        <band_optimizer frequency="47" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="141" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="234" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="328" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="469" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="656" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="844" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="1031" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="1313" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="1688" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="2250" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="3000" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="3750" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="4688" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="5813" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="7125" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="9000" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="11250" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="13875" gain_left="0" gain_right="0" />
+        <band_optimizer frequency="19688" gain_left="0" gain_right="0" />
+      </audio-optimizer-bands>
+      <regulator-tuning>
+        <band_regulator frequency="47" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="141" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="234" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="328" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="469" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="656" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="844" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="1031" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="1313" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="1688" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="2250" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="3000" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="3750" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="4688" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="5813" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="7125" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="9000" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="11250" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="13875" threshold_low="-192" threshold_high="0" isolated_band="false" />
+        <band_regulator frequency="19688" threshold_low="-192" threshold_high="0" isolated_band="false" />
+      </regulator-tuning>
+      <regulator-sibilance-suppress-amounts-left />
+      <regulator-sibilance-suppress-amounts-right />
+      <bass-enhancer-boost value="96" />
+      <bass-enhancer-cutoff-frequency value="160" />
+      <bass-enhancer-width value="16" />
+      <bass-extraction-cutoff-frequency value="200" />
+      <complex-equalizer-tuning-left />
+      <complex-equalizer-tuning-right />
+      <height-filter-mode value="0" />
+      <speaker-virtualizer-mode value="2" />
+      <advanced-speaker-virtualizer-start-bin value="6" />
+      <advanced-speaker-virtualizer-rendering-config value="103,32568,6698,5090,0,3,3,3" />
+      <output-mode>
+        <mix_matrix />
+      </output-mode>
+      <regulator-overdrive value="0" />
+      <regulator-timbre-preservation value="12" />
+      <regulator-stress-amount value="96,96,96,96" />
+      <regulator-distortion-slope value="16"/>
+      <virtual-bass-mode value="3" />
+      <virtual-bass-overall-gain value="0" />
+      <virtual-bass-slope-gain value="0" />
+      <virtual-bass-mix-freqs frequency_low="99" frequency_high="281" />
+      <virtual-bass-src-freqs frequency_low="30" frequency_high="90" />
+      <virtual-bass-subgains harmonic_2="-48" harmonic_3="-480" harmonic_4="-240" />
+      <virtual-bass-harmgains value="-2080,48,48,48"/>
+      <virtual-bass-hybgains value="0,0,0,0,0,0"/>
+      <virtual-bass-rolloff-gain value="0"/>
+      <virtual-bass-blend-linear-gain value="10"/>
+      <virtual-bass-mix-frequency value="100,1500"/>
+      <virtual-bass-compressor-tuning value="0,0,-320,96,32,50,50"/>
+      <bass-mbdrc-tuning />
+      <virtualizer-front-speaker-angle value="10" />
+      <virtualizer-height-speaker-angle value="10" />
+      <virtualizer-surround-speaker-angle value="10" />
+      <virtualizer-rear-height-speaker-angle value="10" />
+      <virtualizer-rear-surround-speaker-angle value="10" />
+      <volume-modeler-calibration value="160" />
+      <audio-optimizer-enable value="false" />
+      <volume-leveler-compressor-enable value="false" />
+      <bass-extraction-enable value="false" />
+      <complex-equalizer-enable value="false" />
+      <regulator-enable value="true" />
+      <regulator-speaker-dist-enable value="false" />
+      <regulator-sibilance-suppress-enable value="false" />
+      <bass-mbdrc-enable value="false" />
+    </data>
+  </tuning>
+  <authorized_technologies sku_name="DAX3 Android" device="dax3_android" bundle="DAP MOBILE v2.2">
+    <global_setting virtual_bass_process="1" />
+  </authorized_technologies>
+</device_data>
+`;
+
+function buildSystemProp() {
+  let out = '';
+  for (const g of PROP_GROUPS) {
+    out += `\n# ${g.name} (${g.props.length})\n`;
+    for (const p of g.props) {
+      out += `${p.key}=${p.val}\n`;
+    }
+  }
+  return out;
+}
+
+function buildMixerOverlayXml() {
+  let xml = '<?xml version="1.0" encoding="ISO-8859-1"?>\n';
+  xml += '<mixer>\n';
+  xml += '    <ctl name="TX_DEC0 Volume" value="90" />\n';
+  xml += '    <ctl name="TX_DEC1 Volume" value="90" />\n';
+  xml += '    <ctl name="TX_DEC2 Volume" value="90" />\n';
+  xml += '    <ctl name="TX_DEC3 Volume" value="90" />\n';
+  xml += '    <ctl name="TX_DEC4 Volume" value="90" />\n';
+  xml += '    <ctl name="SWR DAC_Port Switch" value="1" />\n';
+  xml += '    <ctl name="FSM_Scene" value="0" />\n';
+  xml += '    <ctl name="FSM_Stop" value="1" />\n';
+  xml += '    <ctl name="FSM_Volume" value="255" />\n';
+  xml += '    <ctl name="FSM_Ultrasound_Enable" value="0" />\n';
+  xml += '    <ctl name="FSM_SW_GPIO" value="0"/>\n';
+  for (const p of MIXER_PATHS) {
+    xml += `    <path name="${p.name}">\n`;
+    for (const c of p.ctrls) {
+      xml += `        <ctl name="${c.name}" value="${c.val}" />\n`;
+    }
+    xml += `    </path>\n`;
+  }
+  xml += '</mixer>\n';
+  return xml;
+}
+
+function buildDaxDefaultXml() {
+  // odm/etc/dolby/dax-default.xml — loaded from odm partition
+  let xml = '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n';
+  xml += '<device_data xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\n';
+  xml += '  <format_version major="3" minor="9" maintenance="1"/>\n';
+  xml += '  <tool_version major="3" minor="18" maintenance="0"/>\n';
+  // All 6 IEQ presets
+  for (const p of IEQ_PRESETS) {
+    xml += `  <preset id="${p.id}" name="${p.name}" type="ieq">\n    <data>\n      <ieq-bands>\n`;
+    for (let j = 0; j < 20; j++) {
+      xml += `        <band_ieq frequency="${IEQ_FREQUENCIES[j]}" target="${p.targets[j]}"/>\n`;
+    }
+    xml += '      </ieq-bands>\n    </data>\n  </preset>\n';
+  }
+  // 4 flat GEQ presets
+  for (let i = 0; i < 4; i++) {
+    xml += `  <preset id="${i}" type="geq">\n    <data>\n      <graphic-equalizer-bands>\n`;
+    for (let j = 0; j < 20; j++) {
+      xml += `        <band_geq frequency="${IEQ_FREQUENCIES[j]}" gain="0"/>\n`;
+    }
+    xml += '      </graphic-equalizer-bands>\n    </data>\n  </preset>\n';
+  }
+  xml += '</device_data>\n';
+  return xml;
+}
+
+function exportModule() {
+  const zip = new JSZip();
+  const root = 'MiPadSoundBoostX_Piano';
+
+  // META-INF
+  const meta = zip.folder(root).folder('META-INF').folder('com').folder('google').folder('android');
+  meta.file('update-binary', '# Dummy update-binary\n# BusyBox-based installer for Magisk/KSU/APatch\n');
+  meta.file('updater-script', '#MAGISK\nui_print("  MiPadSoundBoostX Piano");\nui_print("  By HuberyBrook");\n');
+
+  // Root files
+  zip.folder(root).file('module.prop',
+    'id=MiPadSoundBoostXTEXT\nname=MiPadSoundBoostX_Piano\nversion=20260513\nversionCode=20260513\nauthor=HuberyBrook、是Ray酱呀、Sc素菜、NikoRur_QwQRuaa\nminMagisk=20400\ndescription=优化动态范围与音质,可用于KSU,适用于小米平板8Pro的音效优化。\n');
+  zip.folder(root).file('system.prop', buildSystemProp());
+  zip.folder(root).file('customize.sh', '#!/system/bin/sh\n# MiPadSoundBoostX Piano customize.sh\n');
+  zip.folder(root).file('service.sh', '#!/system/bin/sh\n# MiPadSoundBoostX Piano service.sh\n');
+  zip.folder(root).file('post-fs-data.sh', '#!/system/bin/sh\n# MiPadSoundBoostX Piano post-fs-data.sh\n');
+  zip.folder(root).file('LICENSE', 'MIT License\n\nCopyright (c) HuberyBrook, 是Ray酱呀, Sc素菜, NikoRur_QwQRuaa\n');
+
+  // === odm/ partition files (loaded first by system) ===
+  zip.folder(root).folder('odm').folder('etc').folder('dolby').file('dax-default.xml', buildDaxDefaultXml());
+  zip.folder(root).folder('odm').folder('etc').folder('audio').folder('sku_sun').file('mixer_paths_overlay_static.xml', buildMixerOverlayXml());
+
+  // === system/ partition files ===
+  zip.folder(root).folder('system').folder('vendor').folder('etc').folder('dolby').file('dax-default-spatializer.xml', buildSpatializerXml());
+
+  zip.generateAsync({ type: 'blob' }).then(blob => {
+    saveAs(blob, 'MiPadSoundBoostX_Piano_configured.zip');
+    toast('模块 ZIP 已导出! (odm + system)');
+  });
+}
+
+// ==================== INIT ====================
+renderIEQTable();
+</script>
+</body>
+</html>
