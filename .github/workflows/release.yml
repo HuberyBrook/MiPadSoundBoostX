@@ -33,7 +33,9 @@ jobs:
       - name: Checkout
         run: |
           git clone --depth 1 --branch "${{ steps.tag.outputs.tag }}" \
-            "https://github.com/${{ github.repository }}.git" .
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Read module info
         id: mod
@@ -86,12 +88,15 @@ jobs:
 
       - name: Create GitHub Release
         run: |
+          TAG="${{ steps.tag.outputs.tag }}"
           PRERELEASE_FLAG=""
           if [ "${{ steps.prerelease.outputs.prerelease }}" = "true" ]; then
             PRERELEASE_FLAG="--prerelease"
           fi
-          gh release create "${{ steps.tag.outputs.tag }}" \
-            --title "${{ steps.mod.outputs.module_name }} ${{ steps.tag.outputs.tag }}" \
+          # delete existing release if any (from a previous failed run)
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" \
+            --title "${{ steps.mod.outputs.module_name }} $TAG" \
             --generate-notes \
             ${PRERELEASE_FLAG} \
             "${ZIP_NAME}" \
@@ -105,6 +110,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add update.json
           git diff --staged --quiet || git commit -m "chore: update update.json for ${{ steps.tag.outputs.tag }}"
-          git push
+          git push origin HEAD:refs/heads/piano
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
